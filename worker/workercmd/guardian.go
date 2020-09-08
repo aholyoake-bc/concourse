@@ -53,20 +53,19 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 
 	gdnServerFlags = append(gdnServerFlags, detectGuardianFlags(logger)...)
 
-	networkPoolSet := false
-	for _, gdnServerFlag := range gdnServerFlags {
-		if gdnServerFlag == "--network-pool" {
-			networkPoolSet = true
-			break
-		}
-	}
-	if !networkPoolSet {
+	if !isFlagSet(gdnServerFlags, "--network-pool") {
 		// If network-pool is unset Guardian defaults to 10.80.0.0/22 which allows 1024 addresses implicitly limiting a
 		// Guardian worker to 250 containers (4 addresses per container). This is true even if max-containers is set to
 		// a higher value.
 		// We set network-pool to 10.80.0.0/16 to increase the allowable addresses significantly ensuring the container
 		// count is only limited by the explicit max-containers flag.
 		gdnServerFlags = append(gdnServerFlags, "--network-pool", "10.80.0.0/16")
+	}
+
+	if !isFlagSet(gdnServerFlags, "--max-containers") {
+		// Defaulting max container limit to 250 as no other default limits have been widely tested. This can be
+		// increased in the future with more thorough testing.
+		gdnServerFlags = append(gdnServerFlags, "--max-containers", "250")
 	}
 
 	if cmd.Guardian.DNS.Enable {
@@ -118,6 +117,15 @@ func (cmd *WorkerCommand) guardianRunner(logger lager.Logger) (ifrit.Runner, err
 	})
 
 	return grouper.NewParallel(os.Interrupt, members), nil
+}
+
+func isFlagSet(gdnServerFlags []string, flag string) bool {
+	for _, gdnServerFlag := range gdnServerFlags {
+		if gdnServerFlag == flag {
+			return true
+		}
+	}
+	return false
 }
 
 func detectGuardianFlags(logger lager.Logger) []string {
