@@ -299,9 +299,6 @@ handleCallback callback session ( model, effects ) =
 
         VersionedResourcesFetched (Ok ( requestedPage, paginated )) ->
             let
-                fetchedPage =
-                    permalink paginated.content
-
                 resourceVersions =
                     { pagination = paginated.pagination
                     , content =
