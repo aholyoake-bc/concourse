@@ -72,6 +72,11 @@ pipelineName =
     Data.pipelineName
 
 
+pipelineId : Concourse.DatabaseID
+pipelineId =
+    1
+
+
 resourceName : String
 resourceName =
     Data.resourceName
@@ -212,10 +217,8 @@ all =
                     , host = ""
                     , port_ = Nothing
                     , path =
-                        "/teams/"
-                            ++ teamName
-                            ++ "/pipelines/"
-                            ++ pipelineName
+                        "/pipelines/"
+                            ++ String.fromInt 1
                             ++ "/resources/"
                             ++ resourceName
                     , query = Nothing
@@ -270,16 +273,9 @@ all =
                         (Callback.InputToFetched
                             (Ok
                                 ( versionID
-                                , [ { id = 0
-                                    , name = "some-build"
-                                    , job = Just Data.jobId
-                                    , status = BuildStatusSucceeded
-                                    , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                    , reapTime = Nothing
-                                    }
+                                , [ Data.jobBuild BuildStatusSucceeded
+                                        |> Data.withTeamName teamName
+                                        |> Data.withName "some-build"
                                   ]
                                 )
                             )
@@ -303,16 +299,9 @@ all =
                         (Callback.OutputOfFetched
                             (Ok
                                 ( versionID
-                                , [ { id = 0
-                                    , name = "some-build"
-                                    , job = Just Data.jobId
-                                    , status = BuildStatusSucceeded
-                                    , duration =
-                                        { startedAt = Nothing
-                                        , finishedAt = Nothing
-                                        }
-                                    , reapTime = Nothing
-                                    }
+                                , [ Data.jobBuild BuildStatusSucceeded
+                                        |> Data.withTeamName teamName
+                                        |> Data.withName "some-build"
                                   ]
                                 )
                             )
@@ -510,7 +499,7 @@ all =
                     , defineHoverBehaviour <|
                         let
                             urlPath =
-                                "/teams/team/pipelines/pipeline/resources/resource?since=1&limit=1"
+                                "/pipelines/1/resources/resource?since=1&limit=1"
                         in
                         { name = "left pagination chevron with previous page"
                         , setup =
@@ -1254,19 +1243,7 @@ all =
                             }
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1275,17 +1252,17 @@ all =
                                         ( Nothing
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1314,19 +1291,7 @@ all =
                             }
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1335,17 +1300,17 @@ all =
                                         ( Nothing
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1376,19 +1341,7 @@ all =
                             |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1397,17 +1350,17 @@ all =
                                         ( Nothing
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1441,19 +1394,7 @@ all =
                             |> Resource.handleDelivery (ClockTicked OneSecond (Time.millisToPosix 1000))
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Resource.handleCallback
@@ -1462,17 +1403,17 @@ all =
                                         ( Nothing
                                         , { content =
                                                 [ { id = versionID.versionID
-                                                  , version = Dict.fromList [ ( "version", version ) ]
+                                                  , version = Data.version version
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = otherVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", otherVersion ) ]
+                                                  , version = Data.version otherVersion
                                                   , metadata = []
                                                   , enabled = True
                                                   }
                                                 , { id = disabledVersionID.versionID
-                                                  , version = Dict.fromList [ ( "version", disabledVersion ) ]
+                                                  , version = Data.version disabledVersion
                                                   , metadata = []
                                                   , enabled = False
                                                   }
@@ -1488,19 +1429,7 @@ all =
                             |> Resource.update (Click <| PinButton otherVersionID)
                             |> Resource.handleCallback
                                 (Callback.ResourceFetched <|
-                                    Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
-                                        , lastChecked = Nothing
-                                        , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        }
+                                    Ok (Data.resource (Just version))
                                 )
                                 session
                             |> Tuple.first
@@ -3192,18 +3121,9 @@ all =
                             |> Application.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
-                                        , lastChecked = Just (Time.millisToPosix 0)
-                                        , pinnedVersion = Nothing
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        }
+                                        (Data.resource Nothing
+                                            |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                                        )
                                 )
                             |> Tuple.first
                             |> Application.update
@@ -3221,20 +3141,9 @@ all =
                             |> Application.handleCallback
                                 (Callback.ResourceFetched <|
                                     Ok
-                                        { teamName = teamName
-                                        , pipelineName = pipelineName
-                                        , name = resourceName
-                                        , failingToCheck = False
-                                        , checkError = ""
-                                        , checkSetupError = ""
-                                        , lastChecked =
-                                            Just
-                                                (Time.millisToPosix 0)
-                                        , pinnedVersion = Nothing
-                                        , pinnedInConfig = False
-                                        , pinComment = Nothing
-                                        , icon = Nothing
-                                        }
+                                        (Data.resource Nothing
+                                            |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                                        )
                                 )
                             |> Tuple.first
                             |> Application.handleCallback
@@ -3261,18 +3170,10 @@ all =
                         |> Application.handleCallback
                             (Callback.ResourceFetched <|
                                 Ok
-                                    { teamName = teamName
-                                    , pipelineName = pipelineName
-                                    , name = resourceName
-                                    , failingToCheck = True
-                                    , checkError = "some error"
-                                    , checkSetupError = ""
-                                    , lastChecked = Nothing
-                                    , pinnedVersion = Nothing
-                                    , pinnedInConfig = False
-                                    , pinComment = Nothing
-                                    , icon = Nothing
-                                    }
+                                    (Data.resource Nothing
+                                        |> Data.withCheckError "some error"
+                                        |> Data.withFailingToCheck True
+                                    )
                             )
                         |> Tuple.first
                         |> queryView
@@ -3308,13 +3209,16 @@ flags =
 init : Application.Model
 init =
     Common.init
-        ("/teams/"
-            ++ teamName
-            ++ "/pipelines/"
-            ++ pipelineName
+        ("/pipelines/"
+            ++ String.fromInt pipelineId
             ++ "/resources/"
             ++ resourceName
         )
+        |> Application.handleCallback
+            (Callback.AllPipelinesFetched <|
+                Ok [ Data.pipeline teamName pipelineId |> Data.withName pipelineName ]
+            )
+        |> Tuple.first
 
 
 update :
@@ -3349,18 +3253,9 @@ givenResourcePinnedStatically =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
-                , lastChecked = Nothing
-                , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                , pinnedInConfig = True
-                , pinComment = Nothing
-                , icon = Nothing
-                }
+                (Data.resource (Just version)
+                    |> Data.withPinnedInConfig True
+                )
         )
         >> Tuple.first
 
@@ -3370,18 +3265,9 @@ givenResourcePinnedDynamically =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
-                , lastChecked = Nothing
-                , pinnedVersion = Just (Dict.fromList [ ( "version", version ) ])
-                , pinnedInConfig = False
-                , pinComment = Nothing
-                , icon = Nothing
-                }
+                (Data.resource (Just version)
+                    |> Data.withPinnedInConfig False
+                )
         )
         >> Tuple.first
 
@@ -3391,19 +3277,9 @@ whenResourceLoadsWithPinnedComment =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
-                , lastChecked = Nothing
-                , pinnedVersion =
-                    Just (Dict.fromList [ ( "version", version ) ])
-                , pinnedInConfig = False
-                , pinComment = Just "some pin comment"
-                , icon = Nothing
-                }
+                (Data.resource (Just version)
+                    |> Data.withPinComment (Just "some pin comment")
+                )
         )
 
 
@@ -3417,18 +3293,9 @@ givenResourceIsNotPinned =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
-                , lastChecked = Just (Time.millisToPosix 0)
-                , pinnedVersion = Nothing
-                , pinnedInConfig = False
-                , pinComment = Nothing
-                , icon = Nothing
-                }
+                (Data.resource Nothing
+                    |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                )
         )
         >> Tuple.first
 
@@ -3438,18 +3305,10 @@ givenResourceHasIcon =
     Application.handleCallback
         (Callback.ResourceFetched <|
             Ok
-                { teamName = teamName
-                , pipelineName = pipelineName
-                , name = resourceName
-                , failingToCheck = False
-                , checkError = ""
-                , checkSetupError = ""
-                , lastChecked = Just (Time.millisToPosix 0)
-                , pinnedVersion = Nothing
-                , pinnedInConfig = False
-                , pinComment = Nothing
-                , icon = Just resourceIcon
-                }
+                (Data.resource (Just version)
+                    |> Data.withLastChecked (Just (Time.millisToPosix 0))
+                    |> Data.withIcon (Just resourceIcon)
+                )
         )
         >> Tuple.first
 
@@ -3595,7 +3454,7 @@ givenThePipelineIsArchived =
     Application.handleCallback
         (Callback.AllPipelinesFetched <|
             Ok
-                [ Data.pipeline teamName 0
+                [ Data.pipeline teamName 1
                     |> Data.withName pipelineName
                     |> Data.withArchived True
                 ]

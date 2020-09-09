@@ -47,8 +47,6 @@ all =
                 someJobInfo =
                     Data.jobId
                         |> Data.withJobName "some-job"
-                        |> Data.withPipelineName "some-pipeline"
-                        |> Data.withTeamName "some-team"
 
                 jobInfo =
                     Data.jobId
@@ -57,6 +55,7 @@ all =
                 someBuild =
                     { id = 123
                     , name = "45"
+                    , teamName = "some-team"
                     , job = Just someJobInfo
                     , status = BuildStatusSucceeded
                     , duration =
@@ -68,18 +67,11 @@ all =
 
                 someJob : Concourse.Job
                 someJob =
-                    { name = "some-job"
-                    , pipelineName = "some-pipeline"
-                    , teamName = "some-team"
-                    , nextBuild = Nothing
-                    , finishedBuild = Just someBuild
-                    , transitionBuild = Nothing
-                    , paused = False
-                    , disableManualTrigger = False
-                    , inputs = []
-                    , outputs = []
-                    , groups = []
-                    }
+                    Data.job 1
+                        |> Data.withName "some-job"
+                        |> Data.withPipelineName "some-pipeline"
+                        |> Data.withTeamName "some-team"
+                        |> Data.withFinishedBuild (Just someBuild)
 
                 defaultModel : Job.Model
                 defaultModel =
@@ -107,22 +99,16 @@ all =
                     -> ()
                     -> Application.Model
                 init { disabled, paused } _ =
-                    Common.init "/teams/team/pipelines/pipeline/jobs/job"
+                    Common.init "/pipelines/1/jobs/job"
                         |> Application.handleCallback
                             (JobFetched <|
                                 Ok
-                                    { name = "job"
-                                    , pipelineName = "pipeline"
-                                    , teamName = "team"
-                                    , nextBuild = Nothing
-                                    , finishedBuild = Just someBuild
-                                    , transitionBuild = Nothing
-                                    , paused = paused
-                                    , disableManualTrigger = disabled
-                                    , inputs = []
-                                    , outputs = []
-                                    , groups = []
-                                    }
+                                    (Data.job 1
+                                        |> Data.withPipelineName "pipeline"
+                                        |> Data.withFinishedBuild (Just someBuild)
+                                        |> Data.withDisableManualTrigger disabled
+                                        |> Data.withPaused paused
+                                    )
                             )
                         |> Tuple.first
 
@@ -138,7 +124,7 @@ all =
             [ describe "while page is loading"
                 [ test "title includes job name" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
+                        Common.init "/pipelines/1/jobs/job"
                             |> Application.view
                             |> .title
                             |> Expect.equal "job - Concourse"
@@ -154,7 +140,7 @@ all =
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
-                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , path = "/pipelines/1/jobs/job"
                             , query = Nothing
                             , fragment = Nothing
                             }
@@ -172,7 +158,7 @@ all =
                             { protocol = Url.Http
                             , host = ""
                             , port_ = Nothing
-                            , path = "/teams/team/pipelines/pipeline/jobs/job"
+                            , path = "/pipelines/1/jobs/job"
                             , query = Nothing
                             , fragment = Nothing
                             }
@@ -180,7 +166,7 @@ all =
                             |> Common.contains Effects.FetchAllPipelines
                 , test "shows two spinners before anything has loaded" <|
                     \_ ->
-                        Common.init "/teams/team/pipelines/pipeline/jobs/job"
+                        Common.init "/pipelines/1/jobs/job"
                             |> queryView
                             |> Query.findAll loadingIndicatorSelector
                             |> Query.count (Expect.equal 2)
@@ -188,32 +174,12 @@ all =
                     init { disabled = False, paused = False }
                         >> Application.handleCallback
                             (JobBuildsFetched <|
-                                let
-                                    jobId =
-                                        Data.jobId
-
-                                    status =
-                                        BuildStatusSucceeded
-
-                                    builds =
-                                        [ { id = 0
-                                          , name = "0"
-                                          , job = Just jobId
-                                          , status = status
-                                          , duration =
-                                                { startedAt = Nothing
-                                                , finishedAt = Nothing
-                                                }
-                                          , reapTime = Nothing
-                                          }
-                                        ]
-                                in
                                 Ok
                                     { pagination =
                                         { previousPage = Nothing
                                         , nextPage = Nothing
                                         }
-                                    , content = builds
+                                    , content = [ Data.jobBuild BuildStatusSucceeded ]
                                     }
                             )
                         >> Tuple.first
@@ -446,7 +412,7 @@ all =
                             >> Application.handleCallback
                                 (Callback.AllPipelinesFetched <|
                                     Ok
-                                        [ Data.pipeline "team" 0
+                                        [ Data.pipeline "team" 1
                                             |> Data.withName "pipeline"
                                             |> Data.withArchived True
                                         ]
@@ -491,32 +457,12 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
                         (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    Data.jobId
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
                             Ok
                                 { pagination =
                                     { previousPage = Nothing
                                     , nextPage = Nothing
                                     }
-                                , content = builds
+                                , content = [ Data.jobBuild BuildStatusSucceeded ]
                                 }
                         )
                     >> Tuple.first
@@ -527,32 +473,12 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
                         (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    Data.jobId
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
                             Ok
                                 { pagination =
                                     { previousPage = Nothing
                                     , nextPage = Nothing
                                     }
-                                , content = builds
+                                , content = [ Data.jobBuild BuildStatusSucceeded ]
                                 }
                         )
                     >> Tuple.first
@@ -582,32 +508,12 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
                         (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    Data.jobId
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
                             Ok
                                 { pagination =
                                     { previousPage = Nothing
                                     , nextPage = Nothing
                                     }
-                                , content = builds
+                                , content = [ Data.jobBuild BuildStatusSucceeded ]
                                 }
                         )
                     >> Tuple.first
@@ -666,32 +572,12 @@ all =
                 init { disabled = False, paused = False }
                     >> Application.handleCallback
                         (JobBuildsFetched <|
-                            let
-                                jobId =
-                                    Data.jobId
-
-                                status =
-                                    BuildStatusSucceeded
-
-                                builds =
-                                    [ { id = 0
-                                      , name = "0"
-                                      , job = Just jobId
-                                      , status = status
-                                      , duration =
-                                            { startedAt = Nothing
-                                            , finishedAt = Nothing
-                                            }
-                                      , reapTime = Nothing
-                                      }
-                                    ]
-                            in
                             Ok
                                 { pagination =
                                     { previousPage = Nothing
                                     , nextPage = Nothing
                                     }
-                                , content = builds
+                                , content = [ Data.jobBuild BuildStatusSucceeded ]
                                 }
                         )
                     >> Tuple.first
@@ -739,45 +625,23 @@ all =
             , defineHoverBehaviour <|
                 let
                     urlPath =
-                        "/teams/team/pipelines/pipeline/jobs/job?since=1&limit=1"
+                        "/pipelines/1/jobs/job?since=1&limit=1"
                 in
                 { name = "left pagination chevron with previous page"
                 , setup =
-                    let
-                        jobId =
-                            Data.jobId
-
-                        status =
-                            BuildStatusSucceeded
-
-                        builds =
-                            [ { id = 0
-                              , name = "0"
-                              , job = Just jobId
-                              , status = status
-                              , duration =
-                                    { startedAt = Nothing
-                                    , finishedAt = Nothing
-                                    }
-                              , reapTime = Nothing
-                              }
-                            ]
-
-                        prevPage =
-                            { direction = Since 1
-                            , limit = 1
-                            }
-                    in
                     init { disabled = False, paused = False } ()
                         |> Application.handleCallback
                             (JobBuildsFetched <|
                                 Ok
                                     { pagination =
                                         { previousPage =
-                                            Just prevPage
+                                            Just
+                                                { direction = Since 1
+                                                , limit = 1
+                                                }
                                         , nextPage = Nothing
                                         }
-                                    , content = builds
+                                    , content = [ Data.jobBuild BuildStatusSucceeded ]
                                     }
                             )
                         |> Tuple.first

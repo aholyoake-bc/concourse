@@ -98,11 +98,10 @@ type alias Transition =
 build : Parser (Route -> a) a
 build =
     let
-        buildHelper teamName pipelineName jobName buildName h =
+        buildHelper pipelineId jobName buildName h =
             Build
                 { id =
-                    { teamName = teamName
-                    , pipelineName = pipelineName
+                    { pipelineId = pipelineId
                     , jobName = jobName
                     , buildName = buildName
                     }
@@ -110,10 +109,8 @@ build =
                 }
     in
     map buildHelper
-        (s "teams"
-            </> string
-            </> s "pipelines"
-            </> string
+        (s "pipelines"
+            </> int
             </> s "jobs"
             </> string
             </> s "builds"
@@ -151,21 +148,18 @@ parsePage since until limit =
 resource : Parser (Route -> a) a
 resource =
     let
-        resourceHelper teamName pipelineName resourceName since until limit =
+        resourceHelper pipelineId resourceName since until limit =
             Resource
                 { id =
-                    { teamName = teamName
-                    , pipelineName = pipelineName
+                    { pipelineId = pipelineId
                     , resourceName = resourceName
                     }
                 , page = parsePage since until limit
                 }
     in
     map resourceHelper
-        (s "teams"
-            </> string
-            </> s "pipelines"
-            </> string
+        (s "pipelines"
+            </> int
             </> s "resources"
             </> string
             <?> Query.int "since"
@@ -177,21 +171,18 @@ resource =
 job : Parser (Route -> a) a
 job =
     let
-        jobHelper teamName pipelineName jobName since until limit =
+        jobHelper pipelineId jobName since until limit =
             Job
                 { id =
-                    { teamName = teamName
-                    , pipelineName = pipelineName
+                    { pipelineId = pipelineId
                     , jobName = jobName
                     }
                 , page = parsePage since until limit
                 }
     in
     map jobHelper
-        (s "teams"
-            </> string
-            </> s "pipelines"
-            </> string
+        (s "pipelines"
+            </> int
             </> s "jobs"
             </> string
             <?> Query.int "since"
@@ -203,19 +194,14 @@ job =
 pipeline : Parser (Route -> a) a
 pipeline =
     map
-        (\t p g ->
+        (\p g ->
             Pipeline
-                { id =
-                    { teamName = t
-                    , pipelineName = p
-                    }
+                { id = p
                 , groups = g
                 }
         )
-        (s "teams"
-            </> string
-            </> s "pipelines"
-            </> string
+        (s "pipelines"
+            </> int
             <?> Query.custom "group" identity
         )
 
@@ -266,8 +252,7 @@ buildRoute id name jobId =
         Just j ->
             Build
                 { id =
-                    { teamName = j.teamName
-                    , pipelineName = j.pipelineName
+                    { pipelineId = j.pipelineId
                     , jobName = j.jobName
                     , buildName = name
                     }
@@ -282,17 +267,16 @@ jobRoute : Concourse.Job -> Route
 jobRoute j =
     Job
         { id =
-            { teamName = j.teamName
-            , pipelineName = j.pipelineName
+            { pipelineId = j.pipelineId
             , jobName = j.name
             }
         , page = Nothing
         }
 
 
-pipelineRoute : { a | name : String, teamName : String } -> Route
+pipelineRoute : { a | id : Concourse.DatabaseID } -> Route
 pipelineRoute p =
-    Pipeline { id = { teamName = p.teamName, pipelineName = p.name }, groups = [] }
+    Pipeline { id = p.id, groups = [] }
 
 
 showHighlight : Highlight -> String
@@ -399,10 +383,8 @@ toString route =
     case route of
         Build { id, highlight } ->
             Builder.absolute
-                [ "teams"
-                , id.teamName
-                , "pipelines"
-                , id.pipelineName
+                [ "pipelines"
+                , String.fromInt id.pipelineId
                 , "jobs"
                 , id.jobName
                 , "builds"
@@ -413,10 +395,8 @@ toString route =
 
         Job { id, page } ->
             Builder.absolute
-                [ "teams"
-                , id.teamName
-                , "pipelines"
-                , id.pipelineName
+                [ "pipelines"
+                , String.fromInt id.pipelineId
                 , "jobs"
                 , id.jobName
                 ]
@@ -424,10 +404,8 @@ toString route =
 
         Resource { id, page } ->
             Builder.absolute
-                [ "teams"
-                , id.teamName
-                , "pipelines"
-                , id.pipelineName
+                [ "pipelines"
+                , String.fromInt id.pipelineId
                 , "resources"
                 , id.resourceName
                 ]
@@ -443,10 +421,8 @@ toString route =
 
         Pipeline { id, groups } ->
             Builder.absolute
-                [ "teams"
-                , id.teamName
-                , "pipelines"
-                , id.pipelineName
+                [ "pipelines"
+                , String.fromInt id
                 ]
                 (groups |> List.map (Builder.string "group"))
 
@@ -508,13 +484,13 @@ extractPid : Route -> Maybe Concourse.PipelineIdentifier
 extractPid route =
     case route of
         Build { id } ->
-            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+            Just id.pipelineId
 
         Job { id } ->
-            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+            Just id.pipelineId
 
         Resource { id } ->
-            Just { teamName = id.teamName, pipelineName = id.pipelineName }
+            Just id.pipelineId
 
         Pipeline { id } ->
             Just id
