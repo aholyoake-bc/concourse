@@ -156,8 +156,7 @@ type alias BuildName =
 
 
 type alias JobBuildIdentifier =
-    { teamName : TeamName
-    , pipelineName : PipelineName
+    { pipelineId : DatabaseID
     , jobName : JobName
     , buildName : BuildName
     }
@@ -166,6 +165,7 @@ type alias JobBuildIdentifier =
 type alias Build =
     { id : BuildId
     , name : BuildName
+    , teamName : TeamName
     , job : Maybe JobIdentifier
     , status : BuildStatus
     , duration : BuildDuration
@@ -184,8 +184,8 @@ encodeBuild build =
     Json.Encode.object
         ([ ( "id", build.id |> Json.Encode.int ) |> Just
          , ( "name", build.name |> Json.Encode.string ) |> Just
-         , optionalField "team_name" Json.Encode.string (build.job |> Maybe.map .teamName)
-         , optionalField "pipeline_name" Json.Encode.string (build.job |> Maybe.map .pipelineName)
+         , ( "team_name", build.teamName |> Json.Encode.string ) |> Just
+         , optionalField "pipeline_id" Json.Encode.int (build.job |> Maybe.map .pipelineId)
          , optionalField "job_name" Json.Encode.string (build.job |> Maybe.map .jobName)
          , ( "status", build.status |> Concourse.BuildStatus.encodeBuildStatus ) |> Just
          , optionalField "start_time" (secondsFromDate >> Json.Encode.int) build.duration.startedAt
@@ -211,11 +211,11 @@ decodeBuild =
     Json.Decode.succeed Build
         |> andMap (Json.Decode.field "id" Json.Decode.int)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap
             (Json.Decode.maybe
                 (Json.Decode.succeed JobIdentifier
-                    |> andMap (Json.Decode.field "team_name" Json.Decode.string)
-                    |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+                    |> andMap (Json.Decode.field "pipeline_id" Json.Decode.int)
                     |> andMap (Json.Decode.field "job_name" Json.Decode.string)
                 )
             )
@@ -693,14 +693,14 @@ type alias JobName =
 
 
 type alias JobIdentifier =
-    { teamName : TeamName
-    , pipelineName : PipelineName
+    { pipelineId : DatabaseID
     , jobName : JobName
     }
 
 
 type alias Job =
     { name : JobName
+    , pipelineId : DatabaseID
     , pipelineName : PipelineName
     , teamName : TeamName
     , nextBuild : Maybe Build
@@ -733,6 +733,7 @@ encodeJob job =
     Json.Encode.object
         [ ( "name", job.name |> Json.Encode.string )
         , ( "pipeline_name", job.pipelineName |> Json.Encode.string )
+        , ( "pipeline_id", job.pipelineId |> Json.Encode.int )
         , ( "team_name", job.teamName |> Json.Encode.string )
         , ( "next_build", job.nextBuild |> encodeMaybeBuild )
         , ( "finished_build", job.finishedBuild |> encodeMaybeBuild )
@@ -750,6 +751,7 @@ decodeJob : Json.Decode.Decoder Job
 decodeJob =
     Json.Decode.succeed Job
         |> andMap (Json.Decode.field "name" Json.Decode.string)
+        |> andMap (Json.Decode.field "pipeline_id" Json.Decode.int)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "next_build" decodeBuild))
@@ -805,9 +807,7 @@ type alias PipelineName =
 
 
 type alias PipelineIdentifier =
-    { teamName : TeamName
-    , pipelineName : PipelineName
-    }
+    DatabaseID
 
 
 type alias Pipeline =
@@ -877,6 +877,7 @@ decodePipelineGroup =
 type alias Resource =
     { teamName : String
     , pipelineName : String
+    , pipelineId : Int
     , name : String
     , icon : Maybe String
     , failingToCheck : Bool
@@ -890,15 +891,13 @@ type alias Resource =
 
 
 type alias ResourceIdentifier =
-    { teamName : String
-    , pipelineName : String
+    { pipelineId : DatabaseID
     , resourceName : String
     }
 
 
 type alias CheckIdentifier =
-    { teamName : String
-    , pipelineName : String
+    { pipelineId : DatabaseID
     , resourceName : String
     , checkID : Int
     }
@@ -913,8 +912,7 @@ type alias VersionedResource =
 
 
 type alias VersionedResourceIdentifier =
-    { teamName : String
-    , pipelineName : String
+    { pipelineId : DatabaseID
     , resourceName : String
     , versionID : Int
     }
@@ -941,6 +939,7 @@ decodeResource =
     Json.Decode.succeed Resource
         |> andMap (Json.Decode.field "team_name" Json.Decode.string)
         |> andMap (Json.Decode.field "pipeline_name" Json.Decode.string)
+        |> andMap (Json.Decode.field "pipeline_id" Json.Decode.int)
         |> andMap (Json.Decode.field "name" Json.Decode.string)
         |> andMap (Json.Decode.maybe (Json.Decode.field "icon" Json.Decode.string))
         |> andMap (defaultTo False <| Json.Decode.field "failing_to_check" Json.Decode.bool)
