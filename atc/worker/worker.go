@@ -850,7 +850,7 @@ func (worker *gardenWorker) Uptime() time.Duration {
 
 func (worker *gardenWorker) tagsMatch(tags []string) bool {
 	workerTags := worker.dbWorker.Tags()
-	if len(workerTags) > 0 && len(tags) == 0 {
+	if len(workerTags) > 0 && !(len(workerTags) == 1 && workerTags[0] == "") && len(tags) == 0 {
 		return false
 	}
 
