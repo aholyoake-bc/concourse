@@ -8,7 +8,7 @@ import Concourse.PipelineStatus
         , equal
         , isRunning
         )
-import Dashboard.Group.Models exposing (Group, Pipeline)
+import Dashboard.Group.Models exposing (Card(..), Group, Pipeline)
 import Dashboard.Pipeline as Pipeline
 import Dict exposing (Dict)
 import Parser
@@ -62,7 +62,9 @@ filterGroups { pipelineJobs, jobs, query, teams, pipelines, dashboardView, favor
                 |> List.map
                     (\( t, p ) ->
                         { teamName = t
-                        , pipelines = List.filter (prefilter dashboardView favoritedPipelines) p
+                        , cards =
+                            List.filter (prefilter dashboardView favoritedPipelines) p
+                                |> List.map PipelineCard
                         }
                     )
     in
@@ -98,22 +100,50 @@ runFilter jobs existingJobs f =
         Team teamName ->
             List.filter (.teamName >> Simple.Fuzzy.match teamName >> negater)
 
-        Pipeline pf ->
+        Card c ->
             List.map
                 (\g ->
                     { g
-                        | pipelines =
-                            g.pipelines
-                                |> List.filter (pipelineFilter pf jobs existingJobs >> negater)
+                        | cards =
+                            g.cards
+                                |> List.filter (cardFilter c jobs existingJobs >> negater)
                     }
                 )
-                >> List.filter (.pipelines >> List.isEmpty >> not)
+                >> List.filter (.cards >> List.isEmpty >> not)
 
 
 lookupJob : Dict ( Concourse.DatabaseID, String ) Concourse.Job -> Concourse.JobIdentifier -> Maybe Concourse.Job
 lookupJob jobs jobId =
     jobs
         |> Dict.get ( jobId.pipelineId, jobId.jobName )
+
+
+cardFilter :
+    CardFilter
+    -> Dict ( Concourse.DatabaseID, String ) Concourse.Job
+    -> Dict Concourse.DatabaseID (List Concourse.JobIdentifier)
+    -> Card
+    -> Bool
+cardFilter cf jobs existingJobs card =
+    case cf of
+        FuzzyName term ->
+            case card of
+                PipelineCard { name } ->
+                    Simple.Fuzzy.match term name
+
+                InstanceGroupCard { name } ->
+                    Simple.Fuzzy.match term name
+
+        Pipeline pf ->
+            case card of
+                PipelineCard p ->
+                    pipelineFilter pf jobs existingJobs p
+
+                InstanceGroupCard { pipelines } ->
+                    -- -- Maybe filter down the list of pipelines
+                    -- pipelines
+                    --     |> List.any (pipelineFilter pf jobs existingJobs)
+                    False
 
 
 pipelineFilter :
@@ -138,9 +168,6 @@ pipelineFilter pf jobs existingJobs pipeline =
 
                 PipelineRunning ->
                     pipeline |> Pipeline.pipelineStatus jobsForPipeline |> isRunning
-
-        FuzzyName term ->
-            pipeline.name |> Simple.Fuzzy.match term
 
 
 parseFilters : String -> List Filter
@@ -168,12 +195,16 @@ filter =
 
 type GroupFilter
     = Team String
+    | Card CardFilter
+
+
+type CardFilter
+    = FuzzyName String
     | Pipeline PipelineFilter
 
 
 type PipelineFilter
     = Status StatusFilter
-    | FuzzyName String
 
 
 groupFilter : Parser GroupFilter
@@ -181,7 +212,7 @@ groupFilter =
     oneOf
         [ backtrackable teamFilter
         , backtrackable statusFilter
-        , succeed (FuzzyName >> Pipeline) |= parseWord
+        , succeed (FuzzyName >> Card) |= parseWord
         ]
 
 
@@ -209,7 +240,7 @@ teamFilter =
 
 statusFilter : Parser GroupFilter
 statusFilter =
-    succeed (Status >> Pipeline)
+    succeed (Status >> Pipeline >> Card)
         |. keyword "status"
         |. symbol ":"
         |. spaces

@@ -1,10 +1,17 @@
-module Dashboard.Group.Models exposing (Group, Pipeline)
+module Dashboard.Group.Models exposing (Card(..), Group, InstanceGroup, Pipeline)
+
+-- TODO: maybe rename this?
 
 
 type alias Group =
-    { pipelines : List Pipeline
+    { cards : List Card
     , teamName : String
     }
+
+
+type Card
+    = PipelineCard Pipeline
+    | InstanceGroupCard InstanceGroup
 
 
 type alias Pipeline =
@@ -18,4 +25,12 @@ type alias Pipeline =
     , archived : Bool
     , stale : Bool
     , jobsDisabled : Bool
+    }
+
+
+type alias InstanceGroup =
+    { name : String
+
+    --, teamName : String
+    , pipelines : List Pipeline
     }
